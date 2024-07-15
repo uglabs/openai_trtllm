@@ -29,4 +29,8 @@ pub struct Config {
     #[arg(long)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub history_template_file: Option<String>,
+
+    /// Use upstream health check
+    #[arg(long, short, default_value_t = false)]
+    pub ignore_upstream_health: bool,
 }

@@ -8,18 +8,27 @@ use crate::history::HistoryBuilder;
 use crate::routes;
 use crate::state::AppState;
 use crate::triton::grpc_inference_service_client::GrpcInferenceServiceClient;
+use crate::triton::health_client::HealthClient;
 
 pub async fn run_server(config: Config) -> anyhow::Result<()> {
     tracing::info!("Connecting to triton endpoint: {}", config.triton_endpoint);
-    let grpc_client = GrpcInferenceServiceClient::connect(config.triton_endpoint)
+    let grpc_client = GrpcInferenceServiceClient::connect(config.triton_endpoint.clone())
+        .await
+        .context("failed to connect triton endpoint")?;
+    let health_client = HealthClient::connect(config.triton_endpoint.clone())
         .await
         .context("failed to connect triton endpoint")?;
 
     let history_builder =
         HistoryBuilder::new(&config.history_template, &config.history_template_file)?;
+
+    let ignore_upstream_health = config.ignore_upstream_health;
+
     let state = AppState {
         grpc_client,
+        health_client,
         history_builder,
+        ignore_upstream_health,
     };
 
     let app = Router::new()
@@ -28,9 +37,9 @@ pub async fn run_server(config: Config) -> anyhow::Result<()> {
             "/v1/chat/completions",
             post(routes::compat_chat_completions),
         )
+        .route("/health_check", get(routes::health_check))
         .with_state(state)
-        .layer(OtelAxumLayer::default())
-        .route("/health_check", get(routes::health_check));
+        .layer(OtelAxumLayer::default());
 
     let address = format!("{}:{}", config.host, config.port);
     tracing::info!("Starting server at {}", address);

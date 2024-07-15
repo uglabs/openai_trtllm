@@ -33,6 +33,7 @@ pub(crate) async fn compat_chat_completions(
     State(AppState {
         grpc_client,
         history_builder,
+        ..
     }): State<AppState>,
     request: Json<ChatCompletionCreateParams>,
 ) -> Response {
