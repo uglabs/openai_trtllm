@@ -214,12 +214,12 @@ fn build_triton_request(request: CompletionCreateParams) -> anyhow::Result<Model
         )
         .input(
             "bad_words",
-            [1, 1],
+            [1, -1],
             InferTensorData::Bytes(vec!["".as_bytes().to_vec()]),
         )
         .input(
             "stop_words",
-            [1, 1],
+            [1, -1],
             InferTensorData::Bytes(
                 request
                     .stop
